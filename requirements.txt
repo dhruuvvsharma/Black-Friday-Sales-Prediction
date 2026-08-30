@@ -1,0 +1,9 @@
+numpy
+pandas
+matplotlib
+seaborn
+scikit-learn
+dill
+setuptools
+jupyter
+#-e .
