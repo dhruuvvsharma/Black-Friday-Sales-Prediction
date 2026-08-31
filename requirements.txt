@@ -6,4 +6,7 @@ scikit-learn
 dill
 setuptools
 jupyter
+sqlalchemy
+pymysql
+python-dotenv
 #-e .
