@@ -9,4 +9,5 @@ jupyter
 sqlalchemy
 pymysql
 python-dotenv
+ipykernel
 #-e .
