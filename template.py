@@ -13,7 +13,7 @@ list_of_files = [
     f"src/{project_name}/components/data_ingestion.py",
     f"src/{project_name}/components/data_transformation.py",
     f"src/{project_name}/components/model_trainer.py",
-    f"src/{project_name}/components/model_monitering.py",
+   
 
     f"src/{project_name}/pipelines/__init__.py",
     f"src/{project_name}/pipelines/training_pipeline.py",
@@ -29,8 +29,8 @@ list_of_files = [
     "setup.py",
 ]
 
-for filepath in list_of_files:
-    filepath = Path(filepath)
+for flepath in list_of_files:
+    filepath = Path(flepath)
     filedir, filename = os.path.split(filepath)
 
     if filedir != "":
@@ -43,3 +43,5 @@ for filepath in list_of_files:
             logging.info(f"Creating empty file: {filename}")
     else:
         logging.info(f"{filename} already exists")
+
+    

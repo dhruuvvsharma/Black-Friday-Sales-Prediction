@@ -12,4 +12,6 @@ sqlalchemy
 pymysql
 python-dotenv
 ipykernel
+mlflow
+
 #-e .

@@ -19,6 +19,7 @@ from src.my_project.utils import save_object
 @dataclass
 class DataTransformationConfig:
     preprocessor_obj_file_path: str = os.path.join("artifacts", "preprocessor.pkl")
+    frequency_maps_file_path: str = os.path.join("artifacts", "frequency_maps.pkl")
 
 
 class DataTransformation:
@@ -26,11 +27,7 @@ class DataTransformation:
         self.data_transformation_config = DataTransformationConfig()
 
     def get_data_transformer_object(self):
-        """
-        Builds the ColumnTransformer exactly as used in model-training.ipynb:
-        - numerical_columns -> median impute + standard scale
-        - categorical_columns -> most_frequent impute + one-hot encode (ignore unknown)
-        """
+
         try:
             numerical_columns = [
                 "Product_Frequency",
@@ -55,19 +52,9 @@ class DataTransformation:
                 "Occupation_Age",
             ]
 
-            num_pipeline = Pipeline(
-                steps=[
-                    ("imputer", SimpleImputer(strategy="median")),
-                    ("scaler", StandardScaler()),
-                ]
-            )
+            num_pipeline = Pipeline(steps=[("imputer", SimpleImputer(strategy="median")),("scaler", StandardScaler()),])
 
-            cat_pipeline = Pipeline(
-                steps=[
-                    ("imputer", SimpleImputer(strategy="most_frequent")),
-                    ("onehot", OneHotEncoder(handle_unknown="ignore")),
-                ]
-            )
+            cat_pipeline = Pipeline(steps=[("imputer", SimpleImputer(strategy="most_frequent")),("onehot", OneHotEncoder(handle_unknown="ignore")),])
 
             logging.info(f"Numerical columns: {numerical_columns}")
             logging.info(f"Categorical columns: {categorical_columns}")
@@ -86,12 +73,7 @@ class DataTransformation:
 
     @staticmethod
     def additional_features(df: pd.DataFrame, product_frequency: pd.Series, user_frequency: pd.Series) -> pd.DataFrame:
-        """
-        Applies the exact feature engineering from model-training.ipynb.
-        product_frequency / user_frequency must be the TRAIN-fitted value_counts,
-        passed in so the same mapping is reused for val/test/prediction data
-        (unseen ids fall back to 0, matching the notebook).
-        """
+
         df = df.copy()
 
         # Missing-value indicator flags (created before imputation, on raw NaNs)
@@ -114,17 +96,7 @@ class DataTransformation:
         return df
 
     def initiate_data_transformation(self, train_path: str):
-        """
-        train_path points to the ingested Kaggle train.csv (output of data_ingestion.py,
-        550k rows, has 'Purchase'). data_ingestion.py does NOT split the data — it just
-        writes the raw MySQL 'train'/'test' tables to artifacts/. So the 440k/110k
-        train/validation split from the notebook happens here, matching
-        train_test_split(test_size=0.2, random_state=42).
 
-         NOT FOR MYESELF : this method does not take the ingested test.csv. That file is the
-        original Kaggle test set (229k rows, no 'Purchase') and is reserved for
-        prediction_pipeline.py at the very end, not for training/evaluation.
-        """
         try:
             df = pd.read_csv(train_path)
 
@@ -135,13 +107,14 @@ class DataTransformation:
             X = df.drop(columns=[target_column])
             y = df[target_column]
 
-            input_feature_train_df, input_feature_test_df, target_feature_train_df, target_feature_test_df = train_test_split(X, y, test_size=0.2, random_state=42) 
-                                                    
+            input_feature_train_df, input_feature_test_df, target_feature_train_df, target_feature_test_df = train_test_split(
+                X, y, test_size=0.2, random_state=42
+            )
 
             logging.info(
-                        f"Train/validation split done. Train: {input_feature_train_df.shape}, "
-                        f"Validation: {input_feature_test_df.shape}"
-                    )
+                f"Train/validation split done. Train: {input_feature_train_df.shape}, "
+                f"Validation: {input_feature_test_df.shape}"
+            )
 
             # Frequency maps are fit on TRAIN only, then reused on test
             product_frequency = input_feature_train_df["Product_ID"].value_counts()
@@ -159,21 +132,33 @@ class DataTransformation:
 
             logging.info("Applied preprocessing object on training and testing dataframes")
 
-            train_arr = np.c_[input_feature_train_arr.toarray() if hasattr(input_feature_train_arr, "toarray") 
-                              else input_feature_train_arr,np.array(target_feature_train_df),]
-            test_arr = np.c_[input_feature_test_arr.toarray() if hasattr(input_feature_test_arr, "toarray") 
-                             else input_feature_test_arr,np.array(target_feature_test_df),]
+            train_arr = np.c_[
+                input_feature_train_arr.toarray() if hasattr(input_feature_train_arr, "toarray") else input_feature_train_arr,
+                np.array(target_feature_train_df),
+            ]
+            test_arr = np.c_[
+                input_feature_test_arr.toarray() if hasattr(input_feature_test_arr, "toarray") else input_feature_test_arr,
+                np.array(target_feature_test_df),
+            ]
 
-            save_object(file_path=self.data_transformation_config.preprocessor_obj_file_path,obj=preprocessing_obj,)
+            save_object(
+                file_path=self.data_transformation_config.preprocessor_obj_file_path,
+                obj=preprocessing_obj,
+            )
 
-            logging.info("Saved preprocessing object")
+            """frequency maps must be persisted separately as they're fit on the
+             train split only and prediction_pipeline.py needs the exact same
+             mapping when it runs on the Kaggle test.csv later. Without this,
+             unseen data would either crash or silently get wrong frequency
+             encodings computed from the wrong data."""
+
+            save_object(file_path=self.data_transformation_config.frequency_maps_file_path,
+                        obj={"product_frequency": product_frequency, "user_frequency": user_frequency},)
+
+            logging.info("Saved preprocessing object and frequency maps")
 
             return (train_arr,test_arr,self.data_transformation_config.preprocessor_obj_file_path,)
 
         except Exception as e:
             raise CustomException(e, sys)
-
-
-if __name__ == "__main__":
-    obj = DataTransformation()
-    obj.initiate_data_transformation("artifacts/train.csv")
+        
