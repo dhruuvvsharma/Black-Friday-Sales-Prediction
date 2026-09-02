@@ -6,6 +6,8 @@ scikit-learn
 dill
 setuptools
 jupyter
+xgboost
+catboost
 sqlalchemy
 pymysql
 python-dotenv

@@ -10,7 +10,7 @@ from src.my_project.exceptions import CustomException
 from src.my_project.logger import logging
 
 
-load_dotenv()
+load_dotenv()   #1
 
 host = os.getenv("MYSQL_HOST")
 user = os.getenv("MYSQL_USER")
@@ -46,4 +46,24 @@ def read_sql_data(table_name):
 
         logging.error(f"Error reading data from MySQL: {e}")
 
+        raise CustomException(e, sys) from e
+
+
+import pickle
+
+
+def save_object(file_path, obj):   #2 function to save object to file
+
+
+    try:
+        dir_path = os.path.dirname(file_path)
+        os.makedirs(dir_path, exist_ok=True)
+
+        with open(file_path, "wb") as file_obj:
+            pickle.dump(obj, file_obj)
+
+        logging.info(f"Saved object to {file_path}")
+
+    except Exception as e:
+        logging.error(f"Error saving object to {file_path}: {e}")
         raise CustomException(e, sys) from e
