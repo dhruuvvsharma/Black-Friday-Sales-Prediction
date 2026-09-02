@@ -78,6 +78,41 @@ class PredictionPipeline:
         except Exception as e:
             raise CustomException(e, sys)
 
+    def predict(self, input_data: pd.DataFrame):
+
+        try:
+            logging.info("Loading preprocessor, frequency maps, and trained model")
+
+            preprocessor = self._load_object(self.config.preprocessor_path)
+
+            freq_maps = self._load_object(self.config.frequency_maps_path)
+
+            model = self._load_object(self.config.model_path)
+
+            product_frequency = freq_maps["product_frequency"]
+            user_frequency = freq_maps["user_frequency"]
+
+            logging.info("Applying feature engineering to input data")
+
+            input_df = DataTransformation.additional_features(input_data,product_frequency,user_frequency)
+
+            logging.info("Applying saved preprocessor")
+
+            X_transformed = preprocessor.transform(input_df)
+
+            if hasattr(X_transformed, "toarray"):
+                X_transformed = X_transformed.toarray()
+
+            logging.info("Making prediction")
+
+            prediction = model.predict(X_transformed)
+
+            return prediction
+
+        except Exception as e:
+            raise CustomException(e, sys)
+        
+
 
 if __name__ == "__main__":
     path = PredictionPipeline().initiate_prediction()

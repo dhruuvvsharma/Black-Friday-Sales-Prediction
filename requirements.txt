@@ -12,6 +12,9 @@ sqlalchemy
 pymysql
 python-dotenv
 ipykernel
-mlflow
+fastapi
+uvicorn
+streamlit-themes
+streamlit
 
 #-e .
