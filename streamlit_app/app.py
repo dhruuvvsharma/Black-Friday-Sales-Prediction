@@ -1,8 +1,9 @@
+import os
 import re
 import requests
 import streamlit as st
 
-API_URL = "http://127.0.0.1:8000"
+API_URL = os.environ.get("API_URL", "http://127.0.0.1:8000")
 PRODUCT_ID_PATTERN = re.compile(r"^P\d{8}$")
 
 st.set_page_config(
